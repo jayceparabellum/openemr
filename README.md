@@ -20,6 +20,31 @@
 
 [OpenEMR](https://open-emr.org) is a Free and Open Source electronic health records and medical practice management application. It features fully integrated electronic health records, practice management, scheduling, electronic billing, internationalization, free support, a vibrant community, and a whole lot more. It runs on Windows, Linux, Mac OS X, and many other platforms.
 
+## AgentForge Clinical Co-Pilot
+
+This fork is being used for the AgentForge Week 1 Clinical Co-Pilot project. The target workflow is a primary care physician preparing for the next patient in roughly 90 seconds.
+
+Project planning artifacts:
+
+- [AUDIT.md](AUDIT.md)
+- [USERS.md](USERS.md)
+- [ARCHITECTURE.md](ARCHITECTURE.md)
+- [EVALS.md](EVALS.md)
+- [DEPLOYMENT.md](DEPLOYMENT.md)
+
+Local demo setup:
+
+```shell
+cd docker/development-easy
+docker compose up -d
+docker compose exec -T openemr /root/devtools dev-reset-install-demodata
+docker compose restart couchdb
+```
+
+Local OpenEMR URL: `http://localhost:8300`
+
+Local demo credentials: `admin / pass`
+
 ### Contributing
 
 OpenEMR is a leader in healthcare open source software and comprises a large and diverse community of software developers, medical providers and educators with a very healthy mix of both volunteers and professionals. [Join us and learn how to start contributing today!](https://open-emr.org/wiki/index.php/FAQ#How_do_I_begin_to_volunteer_for_the_OpenEMR_project.3F)
