@@ -1088,6 +1088,7 @@ $oemr_ui = new OemrUI($arrOeUiSettings);
         ?>
         <div class="main mb-1">
             <!-- start main content div -->
+            <?php require_once($webserver_root . "/interface/patient_file/summary/clinical_copilot_fragment.php"); ?>
             <div class="row">
                 <?php
                 $t = $twig->getTwig();
