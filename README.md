@@ -33,6 +33,7 @@ Project planning artifacts:
 - [DEPLOYMENT.md](DEPLOYMENT.md)
 - [DEMO_RUNBOOK.md](DEMO_RUNBOOK.md)
 - [ARCHITECTURE_DEFENSE.md](ARCHITECTURE_DEFENSE.md)
+- [SUBMISSION.md](SUBMISSION.md)
 
 Local demo setup:
 

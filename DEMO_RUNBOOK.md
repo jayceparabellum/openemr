@@ -44,6 +44,8 @@ powershell -ExecutionPolicy Bypass -File .\scripts\agentforge-copilot-eval.ps1 -
 
 Expected result: all rows pass. If OpenAI is not configured, `OPENAI-LIVE` should still pass with `not_configured`.
 
+If `-SeedLab` has already been run in the local database, the normal eval command may report existing local lab data instead of a missing-labs state. That is acceptable for rehearsal; the runner verifies that the lab state is explicit either way.
+
 ## Demo Path
 
 1. Open `http://localhost:8300`.
@@ -52,6 +54,8 @@ Expected result: all rows pass. If OpenAI is not configured, `OPENAI-LIVE` shoul
 4. Confirm the Clinical Co-Pilot panel shows `Context ready`.
 5. Point out available context counts and missing/limited source warnings.
 6. If OpenAI is configured, confirm `Summary ready` and source badges appear under every generated item.
+
+Current verified local fallback behavior without `OPENAI_API_KEY`: the panel shows `Context ready` and the message `Context loaded. AI summary generation is pending provider configuration.`
 
 ## What To Say
 
