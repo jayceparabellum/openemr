@@ -13,6 +13,7 @@ node_modules
 # the oe-module-installer-plugin during `composer install`. Never commit the
 # installed copy.
 /interface/modules/custom_modules/oe-module-claimrev-connect/*
+/interface/modules/custom_modules/oe-module-claimrev-connect/
 /public/assets/*
 /public/themes/*
 !/public/assets/modified
@@ -20,6 +21,7 @@ node_modules
 
 # ccda service build
 ccdaservice/node_modules
+ccdaservice/**/node_modules
 
 # dev editor configs
 /.idea/*
@@ -49,3 +51,6 @@ docker/development-easy-light/docker-compose.override.yml
 docker/development-easy-redis/docker-compose.override.yml
 compose.override.yml
 tmp/
+
+# AgentForge local eval artifacts
+eval-results/

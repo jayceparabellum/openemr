@@ -55,3 +55,24 @@ A response passes only if:
 5. Store eval results in a markdown table and JSON artifact.
 6. Re-run before demo and before any public deployment.
 
+## Local Runner
+
+Run the current endpoint eval suite from the repository root:
+
+```powershell
+.\scripts\agentforge-copilot-eval.ps1
+```
+
+If local script execution is disabled on Windows, run:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\agentforge-copilot-eval.ps1
+```
+
+To seed one demo-only A1C lab result before running the suite:
+
+```powershell
+.\scripts\agentforge-copilot-eval.ps1 -SeedLab
+```
+
+The runner writes `eval-results/agentforge-copilot-latest.json`. It exercises the context-only path by default and treats OpenAI generation as a conditional live check: if the server has no `OPENAI_API_KEY`, the expected status is `not_configured`; if a key is configured, generated items must cite only source refs from the endpoint's `source_index`.

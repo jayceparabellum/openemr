@@ -146,7 +146,8 @@ $copilotRestrictedText = xl('Restricted by access controls');
                 <div class="row mt-3 d-none" data-clinical-copilot-ai-results>
                     <div class="col-lg-4">
                         <h3 class="h6"><?php echo xlt('Source-grounded summary'); ?></h3>
-                        <p class="mb-0" data-clinical-copilot-ai-summary></p>
+                        <p class="mb-1" data-clinical-copilot-ai-summary></p>
+                        <div data-clinical-copilot-ai-summary-sources></div>
                     </div>
                     <div class="col-lg-4">
                         <h3 class="h6"><?php echo xlt('Risks to review'); ?></h3>
@@ -174,6 +175,7 @@ $copilotRestrictedText = xl('Restricted by access controls');
         const refreshButton = panel.querySelector('[data-clinical-copilot-refresh]');
         const aiResults = panel.querySelector('[data-clinical-copilot-ai-results]');
         const aiSummary = panel.querySelector('[data-clinical-copilot-ai-summary]');
+        const aiSummarySources = panel.querySelector('[data-clinical-copilot-ai-summary-sources]');
         const aiRisks = panel.querySelector('[data-clinical-copilot-ai-risks]');
         const aiQuestions = panel.querySelector('[data-clinical-copilot-ai-questions]');
         const endpoint = panel.dataset.clinicalCopilotEndpoint;
@@ -194,12 +196,33 @@ $copilotRestrictedText = xl('Restricted by access controls');
             element.textContent = authorized === false ? restricted : String(value ?? 0);
         }
 
+        function renderSourceRefs(element, sourceRefs) {
+            element.innerHTML = '';
+            if (!Array.isArray(sourceRefs)) {
+                return;
+            }
+
+            sourceRefs.forEach(function (sourceRef) {
+                const badge = document.createElement('span');
+                badge.className = 'badge badge-light border mr-1 mb-1';
+                badge.textContent = sourceRef;
+                element.appendChild(badge);
+            });
+        }
+
         function renderList(element, items) {
             element.innerHTML = '';
             items.forEach(function (item) {
                 const li = document.createElement('li');
-                const source = Array.isArray(item.source_refs) && item.source_refs.length > 0 ? ' [' + item.source_refs.join(', ') + ']' : '';
-                li.textContent = (item.text || '') + source;
+                const text = document.createElement('span');
+                const sources = document.createElement('div');
+
+                text.textContent = item.text || '';
+                sources.className = 'mt-1 mb-2';
+                renderSourceRefs(sources, item.source_refs || []);
+
+                li.appendChild(text);
+                li.appendChild(sources);
                 element.appendChild(li);
             });
         }
@@ -214,7 +237,8 @@ $copilotRestrictedText = xl('Restricted by access controls');
                 summary.textContent = <?php echo js_escape(xl('AI summary generated for clinician review. Every displayed item includes source references.')); ?>;
                 setStatus(<?php echo js_escape(xl('Summary ready')); ?>, 'badge-success');
                 aiResults.classList.remove('d-none');
-                aiSummary.textContent = ai.summary.text + ' [' + ai.summary.source_refs.join(', ') + ']';
+                aiSummary.textContent = ai.summary.text;
+                renderSourceRefs(aiSummarySources, ai.summary.source_refs || []);
                 renderList(aiRisks, ai.risks || []);
                 renderList(aiQuestions, ai.follow_up_questions || []);
             } else {
@@ -222,6 +246,7 @@ $copilotRestrictedText = xl('Restricted by access controls');
                 setStatus(<?php echo js_escape(xl('Context ready')); ?>, 'badge-success');
                 aiResults.classList.add('d-none');
                 aiSummary.textContent = '';
+                aiSummarySources.innerHTML = '';
                 aiRisks.innerHTML = '';
                 aiQuestions.innerHTML = '';
             }
