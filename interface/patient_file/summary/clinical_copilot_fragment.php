@@ -100,6 +100,7 @@ $copilotRestrictedText = xl('Restricted by access controls');
                         <p class="mb-3" data-clinical-copilot-summary>
                             <?php echo xlt('AI summary pending configuration. The panel is connected to the current patient context and access checks only.'); ?>
                         </p>
+                        <p class="small text-muted mb-3"><?php echo xlt('For clinician review only. Verify source records before acting.'); ?></p>
                         <div class="d-flex flex-wrap mb-3">
                             <span class="badge badge-light border mr-2 mb-2"><?php echo xlt('Patient demographics'); ?></span>
                             <span class="badge badge-light border mr-2 mb-2"><?php echo xlt('Encounters'); ?></span>
@@ -182,6 +183,7 @@ $copilotRestrictedText = xl('Restricted by access controls');
         const pid = panel.dataset.clinicalCopilotPid;
         const csrf = panel.dataset.clinicalCopilotCsrf;
         const restricted = <?php echo js_escape($copilotRestrictedText); ?>;
+        let sourceLabels = {};
 
         function setStatus(text, className) {
             statusBadge.textContent = text;
@@ -205,9 +207,27 @@ $copilotRestrictedText = xl('Restricted by access controls');
             sourceRefs.forEach(function (sourceRef) {
                 const badge = document.createElement('span');
                 badge.className = 'badge badge-light border mr-1 mb-1';
-                badge.textContent = sourceRef;
+                badge.textContent = sourceLabels[sourceRef] || sourceRef;
+                badge.title = sourceRef;
                 element.appendChild(badge);
             });
+        }
+
+        function formatMissingSource(message) {
+            const parts = String(message).split(':');
+            const section = parts[0] || 'source';
+            const reason = (parts.slice(1).join(':') || '').trim();
+            const displaySection = section.charAt(0).toUpperCase() + section.slice(1);
+
+            if (reason === 'no active records found') {
+                return displaySection + ': no records found in this demo chart';
+            }
+
+            if (reason === 'restricted by ACL') {
+                return displaySection + ': restricted by access controls';
+            }
+
+            return displaySection + (reason ? ': ' + reason : '');
         }
 
         function renderList(element, items) {
@@ -230,6 +250,7 @@ $copilotRestrictedText = xl('Restricted by access controls');
         function renderContext(payload) {
             const context = payload.context || {};
             const ai = payload.ai_summary || {};
+            sourceLabels = payload.source_labels || {};
             const lastEncounter = context.encounters?.recent?.[0]?.date || null;
             const lastEncounterElement = panel.querySelector('[data-clinical-copilot-last-encounter]');
 
@@ -263,7 +284,7 @@ $copilotRestrictedText = xl('Restricted by access controls');
 
             if (payload.missing_sources && payload.missing_sources.length > 0) {
                 missing.classList.remove('d-none');
-                missing.textContent = <?php echo js_escape(xl('Missing or limited sources')); ?> + ': ' + payload.missing_sources.join('; ');
+                missing.textContent = <?php echo js_escape(xl('Missing or limited sources')); ?> + ': ' + payload.missing_sources.map(formatMissingSource).join('; ');
             } else {
                 missing.classList.add('d-none');
                 missing.textContent = '';

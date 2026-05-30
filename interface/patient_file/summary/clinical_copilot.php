@@ -204,6 +204,43 @@ function clinicalCopilotCollectSourceKeys(array $value): array
     return $keys;
 }
 
+function clinicalCopilotBuildSourceLabels(array $context): array
+{
+    $labels = [];
+
+    if (!empty($context['patient']['source']) && is_array($context['patient']['source'])) {
+        $labels[clinicalCopilotSourceKey($context['patient']['source'])] = 'Patient demographics';
+    }
+
+    foreach (($context['encounters']['recent'] ?? []) as $encounter) {
+        if (!empty($encounter['source']) && is_array($encounter['source'])) {
+            $date = empty($encounter['date']) ? '' : ' ' . $encounter['date'];
+            $labels[clinicalCopilotSourceKey($encounter['source'])] = 'Encounter' . $date;
+        }
+    }
+
+    foreach (['problems' => 'Problem', 'medications' => 'Medication', 'allergies' => 'Allergy'] as $section => $labelPrefix) {
+        foreach (($context[$section]['active'] ?? []) as $item) {
+            if (!empty($item['source']) && is_array($item['source'])) {
+                $title = trim((string) ($item['title'] ?? ''));
+                $labels[clinicalCopilotSourceKey($item['source'])] = $labelPrefix . (empty($title) ? '' : ': ' . $title);
+            }
+        }
+    }
+
+    foreach (($context['labs']['recent'] ?? []) as $lab) {
+        if (!empty($lab['source']) && is_array($lab['source'])) {
+            $name = trim((string) ($lab['name'] ?? ''));
+            if (empty($name)) {
+                $name = trim((string) ($lab['code'] ?? ''));
+            }
+            $labels[clinicalCopilotSourceKey($lab['source'])] = 'Lab' . (empty($name) ? '' : ': ' . $name);
+        }
+    }
+
+    return $labels;
+}
+
 function clinicalCopilotValidateItemSources(array $item, array $allowedSources): bool
 {
     if (empty($item['source_refs']) || !is_array($item['source_refs'])) {
@@ -579,6 +616,7 @@ foreach (['problems', 'medications', 'allergies', 'labs'] as $section) {
 }
 
 $allowedSources = clinicalCopilotCollectSourceKeys($context);
+$sourceLabels = clinicalCopilotBuildSourceLabels($context);
 $aiResult = clinicalCopilotGenerateAiSummary($context, $missingSources, $allowedSources);
 $model = $aiResult['model'];
 $mode = $model['summary_generated'] ? 'ai-summary' : 'context-only';
@@ -606,6 +644,7 @@ clinicalCopilotJsonResponse(200, [
     'context' => $context,
     'missing_sources' => $missingSources,
     'source_index' => array_keys($allowedSources),
+    'source_labels' => $sourceLabels,
     'ai_summary' => $aiResult['ai_summary'],
     'response_contract' => [
         'summary' => null,

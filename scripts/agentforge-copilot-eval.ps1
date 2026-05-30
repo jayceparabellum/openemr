@@ -266,13 +266,18 @@ $validationReady = $payload.model.summary_generated -eq $false -or (Test-SourceR
 Add-Result $results "E-007" "Unsupported model claim validation" $validationReady "Model status=$($payload.model.status); generated=$($payload.model.summary_generated)." "Generated claims must cite only source_index refs."
 
 $sourceFormat = $true
+$sourceLabelsPresent = $true
 foreach ($source in $payload.source_index) {
     if ($source -notmatch '^[A-Za-z0-9_]+:[0-9]+$') {
         $sourceFormat = $false
         break
     }
+
+    if (!$payload.source_labels.PSObject.Properties.Name.Contains($source)) {
+        $sourceLabelsPresent = $false
+    }
 }
-Add-Result $results "E-008" "Source chip integrity" $sourceFormat "All source refs use table:id format." "Source refs must be stable table:id values."
+Add-Result $results "E-008" "Source chip integrity" ($sourceFormat -and $sourceLabelsPresent) "All source refs use table:id format and have UI labels." "Source refs must be stable table:id values with labels."
 
 $openAiConfigured = $payload.model.status -ne "not_configured"
 $openAiLivePass = if ($openAiConfigured) { $payload.model.summary_generated -eq $true -and (Test-SourceRefs -Payload $payload) } else { $true }
