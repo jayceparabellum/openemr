@@ -80,16 +80,27 @@ $copilotRestrictedText = xl('Restricted by access controls');
                     <h2 id="clinical-copilot-heading" class="h5 mb-0"><?php echo xlt('Clinical Co-Pilot'); ?></h2>
                     <small class="text-muted"><?php echo xlt('Pre-visit brief'); ?></small>
                 </div>
-                <span class="badge badge-secondary"><?php echo xlt('Read only'); ?></span>
+                <div class="d-flex align-items-center">
+                    <span class="badge badge-secondary mr-2" data-clinical-copilot-status><?php echo xlt('Read only'); ?></span>
+                    <button
+                        type="button"
+                        class="btn btn-sm btn-secondary"
+                        title="<?php echo xla('Refresh Clinical Co-Pilot context'); ?>"
+                        data-clinical-copilot-refresh
+                    >
+                        <i class="fa fa-sync" aria-hidden="true"></i>
+                        <span class="sr-only"><?php echo xlt('Refresh'); ?></span>
+                    </button>
+                </div>
             </div>
             <div class="card-body">
                 <div class="row">
                     <div class="col-lg-7">
                         <h3 class="h6"><?php echo xlt('Draft status'); ?></h3>
-                        <p class="mb-3">
+                        <p class="mb-3" data-clinical-copilot-summary>
                             <?php echo xlt('AI summary pending configuration. The panel is connected to the current patient context and access checks only.'); ?>
                         </p>
-                        <div class="d-flex flex-wrap">
+                        <div class="d-flex flex-wrap mb-3">
                             <span class="badge badge-light border mr-2 mb-2"><?php echo xlt('Patient demographics'); ?></span>
                             <span class="badge badge-light border mr-2 mb-2"><?php echo xlt('Encounters'); ?></span>
                             <?php if ($copilotCanReadProblems) : ?>
@@ -105,29 +116,30 @@ $copilotRestrictedText = xl('Restricted by access controls');
                                 <span class="badge badge-light border mr-2 mb-2"><?php echo xlt('Labs'); ?></span>
                             <?php endif; ?>
                         </div>
+                        <div class="alert alert-warning py-2 mb-0 d-none" role="status" data-clinical-copilot-missing></div>
                     </div>
                     <div class="col-lg-5">
                         <h3 class="h6"><?php echo xlt('Available context'); ?></h3>
                         <dl class="row mb-0">
                             <dt class="col-sm-7"><?php echo xlt('Encounters'); ?></dt>
-                            <dd class="col-sm-5"><?php echo text($copilotEncounterCount); ?></dd>
+                            <dd class="col-sm-5" data-clinical-copilot-count="encounters"><?php echo text($copilotEncounterCount); ?></dd>
 
                             <dt class="col-sm-7"><?php echo xlt('Last encounter'); ?></dt>
-                            <dd class="col-sm-5">
+                            <dd class="col-sm-5" data-clinical-copilot-last-encounter>
                                 <?php echo !empty($copilotLastEncounterDate) ? text(oeFormatShortDate($copilotLastEncounterDate)) : xlt('None'); ?>
                             </dd>
 
                             <dt class="col-sm-7"><?php echo xlt('Active problems'); ?></dt>
-                            <dd class="col-sm-5"><?php echo $copilotProblemsCount === null ? text($copilotRestrictedText) : text($copilotProblemsCount); ?></dd>
+                            <dd class="col-sm-5" data-clinical-copilot-count="problems"><?php echo $copilotProblemsCount === null ? text($copilotRestrictedText) : text($copilotProblemsCount); ?></dd>
 
                             <dt class="col-sm-7"><?php echo xlt('Active medications'); ?></dt>
-                            <dd class="col-sm-5"><?php echo $copilotMedicationsCount === null ? text($copilotRestrictedText) : text($copilotMedicationsCount); ?></dd>
+                            <dd class="col-sm-5" data-clinical-copilot-count="medications"><?php echo $copilotMedicationsCount === null ? text($copilotRestrictedText) : text($copilotMedicationsCount); ?></dd>
 
                             <dt class="col-sm-7"><?php echo xlt('Active allergies'); ?></dt>
-                            <dd class="col-sm-5"><?php echo $copilotAllergiesCount === null ? text($copilotRestrictedText) : text($copilotAllergiesCount); ?></dd>
+                            <dd class="col-sm-5" data-clinical-copilot-count="allergies"><?php echo $copilotAllergiesCount === null ? text($copilotRestrictedText) : text($copilotAllergiesCount); ?></dd>
 
                             <dt class="col-sm-7"><?php echo xlt('Lab results'); ?></dt>
-                            <dd class="col-sm-5"><?php echo $copilotLabsCount === null ? text($copilotRestrictedText) : text($copilotLabsCount); ?></dd>
+                            <dd class="col-sm-5" data-clinical-copilot-count="labs"><?php echo $copilotLabsCount === null ? text($copilotRestrictedText) : text($copilotLabsCount); ?></dd>
                         </dl>
                     </div>
                 </div>
@@ -135,3 +147,98 @@ $copilotRestrictedText = xl('Restricted by access controls');
         </section>
     </div>
 </div>
+<script>
+    (function () {
+        const panel = document.querySelector('[data-clinical-copilot-endpoint]');
+        if (!panel) {
+            return;
+        }
+
+        const statusBadge = panel.querySelector('[data-clinical-copilot-status]');
+        const summary = panel.querySelector('[data-clinical-copilot-summary]');
+        const missing = panel.querySelector('[data-clinical-copilot-missing]');
+        const refreshButton = panel.querySelector('[data-clinical-copilot-refresh]');
+        const endpoint = panel.dataset.clinicalCopilotEndpoint;
+        const pid = panel.dataset.clinicalCopilotPid;
+        const csrf = panel.dataset.clinicalCopilotCsrf;
+        const restricted = <?php echo js_escape($copilotRestrictedText); ?>;
+
+        function setStatus(text, className) {
+            statusBadge.textContent = text;
+            statusBadge.className = 'badge mr-2 ' + className;
+        }
+
+        function setCount(name, value, authorized) {
+            const element = panel.querySelector('[data-clinical-copilot-count="' + name + '"]');
+            if (!element) {
+                return;
+            }
+            element.textContent = authorized === false ? restricted : String(value ?? 0);
+        }
+
+        function renderContext(payload) {
+            const context = payload.context || {};
+            const lastEncounter = context.encounters?.recent?.[0]?.date || null;
+            const lastEncounterElement = panel.querySelector('[data-clinical-copilot-last-encounter]');
+
+            summary.textContent = <?php echo js_escape(xl('Context loaded. AI summary generation is pending provider configuration.')); ?>;
+            setStatus(<?php echo js_escape(xl('Context ready')); ?>, 'badge-success');
+            setCount('encounters', context.encounters?.count, true);
+            setCount('problems', context.problems?.count, context.problems?.authorized);
+            setCount('medications', context.medications?.count, context.medications?.authorized);
+            setCount('allergies', context.allergies?.count, context.allergies?.authorized);
+            setCount('labs', context.labs?.count, context.labs?.authorized);
+
+            if (lastEncounterElement) {
+                lastEncounterElement.textContent = lastEncounter || <?php echo js_escape(xl('None')); ?>;
+            }
+
+            if (payload.missing_sources && payload.missing_sources.length > 0) {
+                missing.classList.remove('d-none');
+                missing.textContent = <?php echo js_escape(xl('Missing or limited sources')); ?> + ': ' + payload.missing_sources.join('; ');
+            } else {
+                missing.classList.add('d-none');
+                missing.textContent = '';
+            }
+        }
+
+        async function loadContext() {
+            const body = new URLSearchParams();
+            body.append('pid', pid);
+            body.append('csrf_token_form', csrf);
+
+            setStatus(<?php echo js_escape(xl('Loading')); ?>, 'badge-info');
+            refreshButton.disabled = true;
+
+            try {
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'
+                    },
+                    body: body.toString()
+                });
+                const payload = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(payload.message || <?php echo js_escape(xl('Clinical Co-Pilot context request failed.')); ?>);
+                }
+
+                renderContext(payload);
+            } catch (error) {
+                setStatus(<?php echo js_escape(xl('Unavailable')); ?>, 'badge-danger');
+                summary.textContent = error.message || <?php echo js_escape(xl('Clinical Co-Pilot context is unavailable.')); ?>;
+                missing.classList.add('d-none');
+                missing.textContent = '';
+            } finally {
+                refreshButton.disabled = false;
+            }
+        }
+
+        refreshButton.addEventListener('click', function () {
+            loadContext();
+        });
+
+        loadContext();
+    })();
+</script>
