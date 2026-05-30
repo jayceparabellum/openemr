@@ -35,6 +35,11 @@ Project planning artifacts:
 - [ARCHITECTURE_DEFENSE.md](ARCHITECTURE_DEFENSE.md)
 - [SUBMISSION.md](SUBMISSION.md)
 
+Render deployment:
+
+- [render.yaml](render.yaml)
+- [render/Dockerfile](render/Dockerfile)
+
 Local demo setup:
 
 ```shell

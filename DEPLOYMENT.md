@@ -53,6 +53,38 @@ Render likely needs a production-style split rather than the easy-dev Compose st
 5. HTTPS through Render edge.
 6. Healthcheck against OpenEMR readiness endpoint.
 
+This repo now includes a Render Blueprint at `render.yaml`. It creates:
+
+1. `agentforge-openemr-mariadb`: a private MariaDB service with a persistent disk.
+2. `agentforge-openemr-week1`: a public Docker web service built from `render/Dockerfile`.
+
+Render does not deploy the local `docker/development-easy/docker-compose.yml` directly. The Blueprint intentionally omits phpMyAdmin, Mailpit, Selenium, VNC, LDAP, CouchDB, and Xdebug from the public surface.
+
+## Creating a New Render Project
+
+Because this environment has no `RENDER_API_KEY`, create the Render project from the dashboard:
+
+1. Open the Render Dashboard.
+2. Choose **New > Project**.
+3. Name it `AgentForge OpenEMR Week 1`.
+4. Create an environment, for example `Demo`.
+5. Choose **New > Blueprint** inside that project/environment.
+6. Connect `https://github.com/jayceparabellum/openemr`.
+7. Use branch `master` and the root `render.yaml`.
+8. When prompted, set:
+   - `OE_USER`: a non-default demo admin username.
+   - `OE_PASS`: a strong demo admin password.
+   - `OPENAI_API_KEY`: optional; leave blank for context-only mode.
+9. Create the Blueprint and wait for MariaDB to start before the OpenEMR web service completes its first install.
+
+Expected public URL if the service name is available:
+
+```text
+https://agentforge-openemr-week1.onrender.com
+```
+
+If Render appends a suffix because the service name already exists, update `OPENEMR_SETTING_site_addr_oath` to the actual public hostname in the web service environment settings and redeploy.
+
 ## Candidate Topology
 
 ```mermaid

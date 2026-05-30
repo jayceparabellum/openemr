@@ -1,0 +1,76 @@
+previews:
+  generation: off
+
+services:
+  - type: pserv
+    runtime: image
+    name: agentforge-openemr-mariadb
+    region: oregon
+    plan: starter
+    image:
+      url: docker.io/library/mariadb:11.8
+    disk:
+      name: agentforge-openemr-mariadb-data
+      mountPath: /var/lib/mysql
+      sizeGB: 10
+    envVars:
+      - key: MYSQL_ROOT_PASSWORD
+        generateValue: true
+      - key: MYSQL_DATABASE
+        value: openemr
+      - key: MYSQL_USER
+        value: openemr
+      - key: MYSQL_PASSWORD
+        generateValue: true
+
+  - type: web
+    runtime: docker
+    name: agentforge-openemr-week1
+    region: oregon
+    plan: starter
+    branch: master
+    dockerfilePath: ./render/Dockerfile
+    dockerContext: .
+    healthCheckPath: /interface/login/login.php?site=default
+    disk:
+      name: agentforge-openemr-sites
+      mountPath: /var/www/localhost/htdocs/openemr/sites
+      sizeGB: 10
+    envVars:
+      - key: MYSQL_HOST
+        fromService:
+          name: agentforge-openemr-mariadb
+          type: pserv
+          property: host
+      - key: MYSQL_ROOT_PASS
+        fromService:
+          name: agentforge-openemr-mariadb
+          type: pserv
+          envVarKey: MYSQL_ROOT_PASSWORD
+      - key: MYSQL_USER
+        value: openemr
+      - key: MYSQL_PASS
+        fromService:
+          name: agentforge-openemr-mariadb
+          type: pserv
+          envVarKey: MYSQL_PASSWORD
+      - key: OE_USER
+        sync: false
+      - key: OE_PASS
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: AGENTFORGE_OPENAI_MODEL
+        value: gpt-4o-mini
+      - key: OPENEMR_SETTING_site_addr_oath
+        value: https://agentforge-openemr-week1.onrender.com
+      - key: OPENEMR_SETTING_oauth_password_grant
+        value: "3"
+      - key: OPENEMR_SETTING_rest_api
+        value: "1"
+      - key: OPENEMR_SETTING_rest_fhir_api
+        value: "1"
+      - key: OPENEMR_SETTING_rest_portal_api
+        value: "1"
+      - key: OPENEMR_SETTING_rest_system_scopes_api
+        value: "1"
