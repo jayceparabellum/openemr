@@ -162,6 +162,11 @@ Actions:
 - `remove`: claim is unsupported but nonessential.
 - `refuse`: request is unauthorized, unsafe, or outside scope.
 
+The implemented endpoint currently supports two response modes:
+
+- `context-only`: Always available after OpenEMR session, CSRF, patient ACL, and per-domain ACL checks pass. It returns source-indexed patient context without making a model request.
+- `ai-summary`: Enabled when `OPENAI_API_KEY` is present on the server. The endpoint uses the OpenAI Responses API with a strict JSON schema and then validates every returned summary, risk, and follow-up prompt against the endpoint's source index. Items without valid `table:id` source references are dropped before the browser receives them.
+
 ## Observability
 
 Log per request:
@@ -215,4 +220,3 @@ OpenAI is the primary implementation target because it is the fastest path to st
 7. Add source chips and missing-data UI states.
 8. Run eval suite and update cost analysis.
 9. Prepare Render deployment and demo video.
-

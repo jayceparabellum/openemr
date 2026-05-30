@@ -143,6 +143,20 @@ $copilotRestrictedText = xl('Restricted by access controls');
                         </dl>
                     </div>
                 </div>
+                <div class="row mt-3 d-none" data-clinical-copilot-ai-results>
+                    <div class="col-lg-4">
+                        <h3 class="h6"><?php echo xlt('Source-grounded summary'); ?></h3>
+                        <p class="mb-0" data-clinical-copilot-ai-summary></p>
+                    </div>
+                    <div class="col-lg-4">
+                        <h3 class="h6"><?php echo xlt('Risks to review'); ?></h3>
+                        <ul class="mb-0 pl-3" data-clinical-copilot-ai-risks></ul>
+                    </div>
+                    <div class="col-lg-4">
+                        <h3 class="h6"><?php echo xlt('Follow-up prompts'); ?></h3>
+                        <ul class="mb-0 pl-3" data-clinical-copilot-ai-questions></ul>
+                    </div>
+                </div>
             </div>
         </section>
     </div>
@@ -158,6 +172,10 @@ $copilotRestrictedText = xl('Restricted by access controls');
         const summary = panel.querySelector('[data-clinical-copilot-summary]');
         const missing = panel.querySelector('[data-clinical-copilot-missing]');
         const refreshButton = panel.querySelector('[data-clinical-copilot-refresh]');
+        const aiResults = panel.querySelector('[data-clinical-copilot-ai-results]');
+        const aiSummary = panel.querySelector('[data-clinical-copilot-ai-summary]');
+        const aiRisks = panel.querySelector('[data-clinical-copilot-ai-risks]');
+        const aiQuestions = panel.querySelector('[data-clinical-copilot-ai-questions]');
         const endpoint = panel.dataset.clinicalCopilotEndpoint;
         const pid = panel.dataset.clinicalCopilotPid;
         const csrf = panel.dataset.clinicalCopilotCsrf;
@@ -176,13 +194,38 @@ $copilotRestrictedText = xl('Restricted by access controls');
             element.textContent = authorized === false ? restricted : String(value ?? 0);
         }
 
+        function renderList(element, items) {
+            element.innerHTML = '';
+            items.forEach(function (item) {
+                const li = document.createElement('li');
+                const source = Array.isArray(item.source_refs) && item.source_refs.length > 0 ? ' [' + item.source_refs.join(', ') + ']' : '';
+                li.textContent = (item.text || '') + source;
+                element.appendChild(li);
+            });
+        }
+
         function renderContext(payload) {
             const context = payload.context || {};
+            const ai = payload.ai_summary || {};
             const lastEncounter = context.encounters?.recent?.[0]?.date || null;
             const lastEncounterElement = panel.querySelector('[data-clinical-copilot-last-encounter]');
 
-            summary.textContent = <?php echo js_escape(xl('Context loaded. AI summary generation is pending provider configuration.')); ?>;
-            setStatus(<?php echo js_escape(xl('Context ready')); ?>, 'badge-success');
+            if (payload.model?.summary_generated && ai.summary?.text) {
+                summary.textContent = <?php echo js_escape(xl('AI summary generated for clinician review. Every displayed item includes source references.')); ?>;
+                setStatus(<?php echo js_escape(xl('Summary ready')); ?>, 'badge-success');
+                aiResults.classList.remove('d-none');
+                aiSummary.textContent = ai.summary.text + ' [' + ai.summary.source_refs.join(', ') + ']';
+                renderList(aiRisks, ai.risks || []);
+                renderList(aiQuestions, ai.follow_up_questions || []);
+            } else {
+                summary.textContent = <?php echo js_escape(xl('Context loaded. AI summary generation is pending provider configuration.')); ?>;
+                setStatus(<?php echo js_escape(xl('Context ready')); ?>, 'badge-success');
+                aiResults.classList.add('d-none');
+                aiSummary.textContent = '';
+                aiRisks.innerHTML = '';
+                aiQuestions.innerHTML = '';
+            }
+
             setCount('encounters', context.encounters?.count, true);
             setCount('problems', context.problems?.count, context.problems?.authorized);
             setCount('medications', context.medications?.count, context.medications?.authorized);
@@ -230,6 +273,7 @@ $copilotRestrictedText = xl('Restricted by access controls');
                 summary.textContent = error.message || <?php echo js_escape(xl('Clinical Co-Pilot context is unavailable.')); ?>;
                 missing.classList.add('d-none');
                 missing.textContent = '';
+                aiResults.classList.add('d-none');
             } finally {
                 refreshButton.disabled = false;
             }

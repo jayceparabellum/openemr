@@ -76,9 +76,12 @@ Required or likely required:
 - `OE_USER`
 - `OE_PASS`
 - `OPENAI_API_KEY`
-- `COPILOT_MODEL`
+- `AGENTFORGE_OPENAI_MODEL`
+- `OPENAI_MODEL`
 - `COPILOT_LOG_LEVEL`
 - `COPILOT_DISABLE_RAW_PHI_LOGS=true`
+
+`OPENAI_API_KEY` is optional for local smoke testing. When it is missing, the Clinical Co-Pilot endpoint remains in context-only mode: auth, ACL checks, CSRF, source indexing, and audit comments still run, but no model call or AI summary is generated. `AGENTFORGE_OPENAI_MODEL` is the preferred model override; `OPENAI_MODEL` is a fallback override; the default is `gpt-4o-mini`.
 
 ## Deployment Risks
 
@@ -99,4 +102,3 @@ Required or likely required:
 - [ ] Co-Pilot environment variables configured.
 - [ ] Healthcheck documented.
 - [ ] README includes deployed link.
-

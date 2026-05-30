@@ -4,8 +4,8 @@
  * AgentForge Clinical Co-Pilot patient context endpoint.
  *
  * This endpoint returns a read-only, ACL-filtered context packet for the
- * patient dashboard. The OpenAI summarization layer will consume this contract
- * in a later slice; no model calls happen here.
+ * patient dashboard. If OPENAI_API_KEY is configured server-side, it also asks
+ * OpenAI for a structured, source-grounded pre-visit brief.
  *
  * @package   OpenEMR
  * @link      https://www.open-emr.org
@@ -45,6 +45,22 @@ function clinicalCopilotAudit(bool $success, string $comment, ?int $pid = null):
         $comment,
         $pid
     );
+}
+
+function clinicalCopilotAuditComment(string $mode, string $provider, string $model, string $status, array $details = []): string
+{
+    $parts = [
+        'mode=' . $mode,
+        'provider=' . $provider,
+        'model=' . $model,
+        'status=' . $status,
+    ];
+
+    foreach ($details as $key => $value) {
+        $parts[] = $key . '=' . $value;
+    }
+
+    return implode('; ', $parts);
 }
 
 function clinicalCopilotDate(?string $date): ?string
@@ -163,6 +179,313 @@ function clinicalCopilotRecentLabs(int $pid, int $limit = 8): array
     return $labs;
 }
 
+function clinicalCopilotSourceKey(array $source): string
+{
+    return ($source['table'] ?? '') . ':' . (string) ($source['id'] ?? '');
+}
+
+function clinicalCopilotCollectSourceKeys(array $value): array
+{
+    $keys = [];
+
+    if (isset($value['source']) && is_array($value['source'])) {
+        $key = clinicalCopilotSourceKey($value['source']);
+        if ($key !== ':') {
+            $keys[$key] = true;
+        }
+    }
+
+    foreach ($value as $child) {
+        if (is_array($child)) {
+            $keys += clinicalCopilotCollectSourceKeys($child);
+        }
+    }
+
+    return $keys;
+}
+
+function clinicalCopilotValidateItemSources(array $item, array $allowedSources): bool
+{
+    if (empty($item['source_refs']) || !is_array($item['source_refs'])) {
+        return false;
+    }
+
+    foreach ($item['source_refs'] as $sourceRef) {
+        if (!is_string($sourceRef) || empty($allowedSources[$sourceRef])) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+function clinicalCopilotValidateAiSummary(array $summary, array $allowedSources): array
+{
+    $validated = [
+        'summary' => null,
+        'risks' => [],
+        'follow_up_questions' => [],
+        'validation' => [
+            'source_references_required' => true,
+            'passed' => true,
+            'dropped_items' => 0,
+        ],
+    ];
+
+    if (isset($summary['summary']) && is_array($summary['summary']) && clinicalCopilotValidateItemSources($summary['summary'], $allowedSources)) {
+        $validated['summary'] = [
+            'text' => (string) ($summary['summary']['text'] ?? ''),
+            'source_refs' => array_values($summary['summary']['source_refs']),
+        ];
+    } else {
+        $validated['validation']['passed'] = false;
+        $validated['validation']['dropped_items']++;
+    }
+
+    foreach (['risks', 'follow_up_questions'] as $listName) {
+        if (empty($summary[$listName]) || !is_array($summary[$listName])) {
+            continue;
+        }
+
+        foreach ($summary[$listName] as $item) {
+            if (!is_array($item) || !clinicalCopilotValidateItemSources($item, $allowedSources)) {
+                $validated['validation']['passed'] = false;
+                $validated['validation']['dropped_items']++;
+                continue;
+            }
+
+            $validated[$listName][] = [
+                'text' => (string) ($item['text'] ?? ''),
+                'source_refs' => array_values($item['source_refs']),
+            ];
+        }
+    }
+
+    return $validated;
+}
+
+function clinicalCopilotSchema(): array
+{
+    $sourceItem = [
+        'type' => 'object',
+        'additionalProperties' => false,
+        'required' => ['text', 'source_refs'],
+        'properties' => [
+            'text' => [
+                'type' => 'string',
+                'description' => 'A concise clinical statement grounded only in the provided context.',
+            ],
+            'source_refs' => [
+                'type' => 'array',
+                'minItems' => 1,
+                'items' => [
+                    'type' => 'string',
+                    'description' => 'Source reference in table:id format from the provided context.',
+                ],
+            ],
+        ],
+    ];
+
+    return [
+        'type' => 'object',
+        'additionalProperties' => false,
+        'required' => ['summary', 'risks', 'follow_up_questions'],
+        'properties' => [
+            'summary' => $sourceItem,
+            'risks' => [
+                'type' => 'array',
+                'items' => $sourceItem,
+            ],
+            'follow_up_questions' => [
+                'type' => 'array',
+                'items' => $sourceItem,
+            ],
+        ],
+    ];
+}
+
+function clinicalCopilotExtractText(array $response): string
+{
+    if (!empty($response['output_text']) && is_string($response['output_text'])) {
+        return $response['output_text'];
+    }
+
+    $texts = [];
+    foreach (($response['output'] ?? []) as $output) {
+        foreach (($output['content'] ?? []) as $content) {
+            if (isset($content['text']) && is_string($content['text'])) {
+                $texts[] = $content['text'];
+            }
+        }
+    }
+
+    return trim(implode("\n", $texts));
+}
+
+function clinicalCopilotGenerateAiSummary(array $context, array $missingSources, array $allowedSources): array
+{
+    $apiKey = getenv('OPENAI_API_KEY') ?: '';
+    $provider = 'openai';
+    $model = getenv('AGENTFORGE_OPENAI_MODEL') ?: (getenv('OPENAI_MODEL') ?: 'gpt-4o-mini');
+
+    if (empty($apiKey)) {
+        return [
+            'model' => [
+                'provider' => $provider,
+                'name' => $model,
+                'summary_generated' => false,
+                'status' => 'not_configured',
+            ],
+            'ai_summary' => [
+                'summary' => null,
+                'risks' => [],
+                'follow_up_questions' => [],
+                'validation' => [
+                    'source_references_required' => true,
+                    'passed' => null,
+                    'dropped_items' => 0,
+                ],
+            ],
+        ];
+    }
+
+    if (!function_exists('curl_init')) {
+        return [
+            'model' => [
+                'provider' => $provider,
+                'name' => $model,
+                'summary_generated' => false,
+                'status' => 'curl_unavailable',
+            ],
+            'ai_summary' => [
+                'summary' => null,
+                'risks' => [],
+                'follow_up_questions' => [],
+                'validation' => [
+                    'source_references_required' => true,
+                    'passed' => false,
+                    'dropped_items' => 0,
+                ],
+            ],
+        ];
+    }
+
+    $sourceKeys = array_keys($allowedSources);
+    sort($sourceKeys);
+    $prompt = [
+        'task' => 'Create a concise primary care pre-visit brief as JSON only.',
+        'rules' => [
+            'Use only the provided context.',
+            'Every summary, risk, and follow-up question must include one or more source_refs from allowed_source_refs.',
+            'Do not infer diagnoses, lab values, medications, allergies, or plans that are not present.',
+            'If evidence is missing, make the relevant follow-up question rather than inventing detail.',
+        ],
+        'allowed_source_refs' => $sourceKeys,
+        'missing_sources' => $missingSources,
+        'context' => $context,
+    ];
+
+    $requestBody = [
+        'model' => $model,
+        'input' => [
+            [
+                'role' => 'system',
+                'content' => 'You are a careful clinical documentation assistant. Return source-grounded JSON for clinician review only. Do not provide diagnosis or treatment recommendations beyond the supplied record.',
+            ],
+            [
+                'role' => 'user',
+                'content' => json_encode($prompt, JSON_UNESCAPED_SLASHES),
+            ],
+        ],
+        'text' => [
+            'format' => [
+                'type' => 'json_schema',
+                'name' => 'clinical_copilot_summary',
+                'strict' => true,
+                'schema' => clinicalCopilotSchema(),
+            ],
+        ],
+        'max_output_tokens' => 900,
+    ];
+
+    $ch = curl_init('https://api.openai.com/v1/responses');
+    curl_setopt_array($ch, [
+        CURLOPT_POST => true,
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_TIMEOUT => 30,
+        CURLOPT_HTTPHEADER => [
+            'Content-Type: application/json',
+            'Authorization: Bearer ' . $apiKey,
+        ],
+        CURLOPT_POSTFIELDS => json_encode($requestBody, JSON_UNESCAPED_SLASHES),
+    ]);
+
+    $rawResponse = curl_exec($ch);
+    $curlError = curl_error($ch);
+    $httpCode = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+
+    if ($rawResponse === false || $httpCode < 200 || $httpCode >= 300) {
+        return [
+            'model' => [
+                'provider' => $provider,
+                'name' => $model,
+                'summary_generated' => false,
+                'status' => 'provider_error',
+                'http_status' => $httpCode,
+            ],
+            'ai_summary' => [
+                'summary' => null,
+                'risks' => [],
+                'follow_up_questions' => [],
+                'validation' => [
+                    'source_references_required' => true,
+                    'passed' => false,
+                    'dropped_items' => 0,
+                ],
+                'error' => empty($curlError) ? 'OpenAI request failed.' : $curlError,
+            ],
+        ];
+    }
+
+    $decodedResponse = json_decode($rawResponse, true);
+    $outputText = is_array($decodedResponse) ? clinicalCopilotExtractText($decodedResponse) : '';
+    $summary = json_decode($outputText, true);
+
+    if (!is_array($summary)) {
+        return [
+            'model' => [
+                'provider' => $provider,
+                'name' => $model,
+                'summary_generated' => false,
+                'status' => 'invalid_provider_json',
+            ],
+            'ai_summary' => [
+                'summary' => null,
+                'risks' => [],
+                'follow_up_questions' => [],
+                'validation' => [
+                    'source_references_required' => true,
+                    'passed' => false,
+                    'dropped_items' => 0,
+                ],
+            ],
+        ];
+    }
+
+    $validated = clinicalCopilotValidateAiSummary($summary, $allowedSources);
+
+    return [
+        'model' => [
+            'provider' => $provider,
+            'name' => $model,
+            'summary_generated' => $validated['summary'] !== null,
+            'status' => $validated['summary'] !== null ? 'generated' : 'validation_failed',
+        ],
+        'ai_summary' => $validated,
+    ];
+}
+
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     clinicalCopilotJsonResponse(405, [
         'error' => 'method_not_allowed',
@@ -255,17 +578,35 @@ foreach (['problems', 'medications', 'allergies', 'labs'] as $section) {
     }
 }
 
-clinicalCopilotAudit(true, 'context request completed', $pid);
+$allowedSources = clinicalCopilotCollectSourceKeys($context);
+$aiResult = clinicalCopilotGenerateAiSummary($context, $missingSources, $allowedSources);
+$model = $aiResult['model'];
+$mode = $model['summary_generated'] ? 'ai-summary' : 'context-only';
+
+clinicalCopilotAudit(
+    true,
+    clinicalCopilotAuditComment(
+        $mode,
+        $model['provider'] ?? 'unknown',
+        $model['name'] ?? 'unknown',
+        $model['status'] ?? 'unknown',
+        [
+            'source_count' => count($allowedSources),
+            'missing_count' => count($missingSources),
+            'dropped_items' => $aiResult['ai_summary']['validation']['dropped_items'] ?? 0,
+        ]
+    ),
+    $pid
+);
 
 clinicalCopilotJsonResponse(200, [
-    'status' => 'ready_for_ai_provider',
+    'status' => $model['summary_generated'] ? 'summary_generated' : 'ready_for_ai_provider',
     'feature' => 'agentforge_clinical_copilot',
-    'model' => [
-        'provider' => 'not_configured',
-        'summary_generated' => false,
-    ],
+    'model' => $model,
     'context' => $context,
     'missing_sources' => $missingSources,
+    'source_index' => array_keys($allowedSources),
+    'ai_summary' => $aiResult['ai_summary'],
     'response_contract' => [
         'summary' => null,
         'risks' => [],
