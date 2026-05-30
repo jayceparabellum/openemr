@@ -68,7 +68,13 @@ $copilotRestrictedText = xl('Restricted by access controls');
 ?>
 <div class="row">
     <div class="col-12 p-1">
-        <section class="card mx-1 mb-2" aria-labelledby="clinical-copilot-heading">
+        <section
+            class="card mx-1 mb-2"
+            aria-labelledby="clinical-copilot-heading"
+            data-clinical-copilot-endpoint="<?php echo attr($GLOBALS['webroot'] . '/interface/patient_file/summary/clinical_copilot.php'); ?>"
+            data-clinical-copilot-pid="<?php echo attr($copilotPid); ?>"
+            data-clinical-copilot-csrf="<?php echo attr(\OpenEMR\Common\Csrf\CsrfUtils::collectCsrfToken(session: $session)); ?>"
+        >
             <div class="card-header d-flex flex-wrap align-items-center justify-content-between">
                 <div>
                     <h2 id="clinical-copilot-heading" class="h5 mb-0"><?php echo xlt('Clinical Co-Pilot'); ?></h2>
