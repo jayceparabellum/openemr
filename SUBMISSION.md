@@ -11,7 +11,7 @@ Repository: https://github.com/jayceparabellum/openemr/
 Latest verified local commit:
 
 ```text
-7347d6f9e docs: add AgentForge demo runbook and source polish
+a1d25ec51 deploy: fix Render blueprint port configuration
 ```
 
 ## What Was Built
@@ -61,3 +61,5 @@ This Week 1 slice embeds a Clinical Co-Pilot into OpenEMR for a primary care phy
 - [Architecture defense](ARCHITECTURE_DEFENSE.md)
 - [Eval plan](EVALS.md)
 - [Deployment notes](DEPLOYMENT.md)
+- [AI cost analysis](AI_COST_ANALYSIS.md)
+- [Social post draft](SOCIAL_POST.md)
