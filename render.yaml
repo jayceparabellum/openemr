@@ -1,6 +1,3 @@
-previews:
-  generation: off
-
 services:
   - type: pserv
     runtime: image
@@ -14,6 +11,8 @@ services:
       mountPath: /var/lib/mysql
       sizeGB: 10
     envVars:
+      - key: PORT
+        value: "3306"
       - key: MYSQL_ROOT_PASSWORD
         generateValue: true
       - key: MYSQL_DATABASE
@@ -37,6 +36,8 @@ services:
       mountPath: /var/www/localhost/htdocs/openemr/sites
       sizeGB: 10
     envVars:
+      - key: PORT
+        value: "80"
       - key: MYSQL_HOST
         fromService:
           name: agentforge-openemr-mariadb
