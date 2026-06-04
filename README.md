@@ -22,9 +22,9 @@
 
 ## AgentForge Clinical Co-Pilot
 
-This fork is being used for the AgentForge Week 1 Clinical Co-Pilot project. The target workflow is a primary care physician preparing for the next patient in roughly 90 seconds.
+This fork is being used for the AgentForge Clinical Co-Pilot project. The target workflow is a primary care physician preparing for the next patient in roughly 90 seconds.
 
-Project planning artifacts:
+Week 1 baseline artifacts:
 
 - [AUDIT.md](AUDIT.md)
 - [USERS.md](USERS.md)
@@ -36,6 +36,13 @@ Project planning artifacts:
 - [AI_COST_ANALYSIS.md](AI_COST_ANALYSIS.md)
 - [SOCIAL_POST.md](SOCIAL_POST.md)
 - [SUBMISSION.md](SUBMISSION.md)
+
+Week 2 artifacts:
+
+- [WEEK2_PLAN.md](WEEK2_PLAN.md)
+- [W2_ARCHITECTURE.md](W2_ARCHITECTURE.md)
+- [PATIENT_DASHBOARD_MIGRATION.md](PATIENT_DASHBOARD_MIGRATION.md)
+- [W2_SUBMISSION.md](W2_SUBMISSION.md)
 
 Render deployment:
 
