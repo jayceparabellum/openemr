@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentforge.local/week2/schemas/citation.schema.json",
+  "title": "AgentForge Week 2 Source Citation",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "source_type",
+    "source_id",
+    "page_or_section",
+    "field_or_chunk_id",
+    "quote_or_value"
+  ],
+  "properties": {
+    "source_type": {
+      "type": "string",
+      "enum": [
+        "openemr_document",
+        "openemr_record",
+        "guideline"
+      ]
+    },
+    "source_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "page_or_section": {
+      "type": "string",
+      "minLength": 1
+    },
+    "field_or_chunk_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "quote_or_value": {
+      "type": "string",
+      "minLength": 1
+    },
+    "bounding_box": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "page",
+        "x",
+        "y",
+        "width",
+        "height"
+      ],
+      "properties": {
+        "page": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "x": {
+          "type": "number",
+          "minimum": 0
+        },
+        "y": {
+          "type": "number",
+          "minimum": 0
+        },
+        "width": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "height": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      }
+    }
+  }
+}

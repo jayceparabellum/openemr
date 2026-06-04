@@ -88,7 +88,7 @@ Keep both tracks narrow. The best Week 2 slice is not a general medical-document
 
 ## Immediate Next Tasks
 
-1. Build strict schema files for `lab_pdf` and `intake_form`.
+1. Build strict schema files for `lab_pdf` and `intake_form`. Done in `agentforge/week2/schemas`.
 2. Inspect OpenEMR document storage and FHIR Observation paths for where source docs and extracted labs should live.
 3. Create a tiny guideline corpus for primary care: diabetes/A1C, hypertension/BP, medication reconciliation, allergy safety.
 4. Decide modern dashboard framework and directory layout.

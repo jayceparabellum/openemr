@@ -1,0 +1,227 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentforge.local/week2/schemas/intake_form.schema.json",
+  "title": "AgentForge Week 2 Intake Form Extraction",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "doc_type",
+    "schema_version",
+    "patient_id",
+    "source_document",
+    "extraction",
+    "demographics",
+    "chief_concern",
+    "current_medications",
+    "allergies",
+    "family_history"
+  ],
+  "properties": {
+    "doc_type": {
+      "type": "string",
+      "const": "intake_form"
+    },
+    "schema_version": {
+      "type": "string",
+      "const": "week2.intake_form.v1"
+    },
+    "patient_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source_document": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_type",
+        "source_id",
+        "filename",
+        "page_count"
+      ],
+      "properties": {
+        "source_type": {
+          "type": "string",
+          "const": "openemr_document"
+        },
+        "source_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "filename": {
+          "type": "string",
+          "minLength": 1
+        },
+        "page_count": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "extraction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "model",
+        "extracted_at",
+        "confidence"
+      ],
+      "properties": {
+        "model": {
+          "type": "string",
+          "minLength": 1
+        },
+        "extracted_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    },
+    "demographics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "full_name",
+        "date_of_birth",
+        "sex",
+        "source_citation"
+      ],
+      "properties": {
+        "full_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "date_of_birth": {
+          "type": "string",
+          "format": "date"
+        },
+        "sex": {
+          "type": "string",
+          "minLength": 1
+        },
+        "mrn": {
+          "type": "string"
+        },
+        "phone": {
+          "type": "string"
+        },
+        "source_citation": {
+          "$ref": "citation.schema.json"
+        }
+      }
+    },
+    "chief_concern": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "text",
+        "source_citation"
+      ],
+      "properties": {
+        "text": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_citation": {
+          "$ref": "citation.schema.json"
+        }
+      }
+    },
+    "current_medications": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "dose",
+          "frequency",
+          "source_citation"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "dose": {
+            "type": "string",
+            "minLength": 1
+          },
+          "frequency": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source_citation": {
+            "$ref": "citation.schema.json"
+          }
+        }
+      }
+    },
+    "allergies": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "substance",
+          "reaction",
+          "source_citation"
+        ],
+        "properties": {
+          "substance": {
+            "type": "string",
+            "minLength": 1
+          },
+          "reaction": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source_citation": {
+            "$ref": "citation.schema.json"
+          }
+        }
+      }
+    },
+    "family_history": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "condition",
+          "relationship",
+          "source_citation"
+        ],
+        "properties": {
+          "condition": {
+            "type": "string",
+            "minLength": 1
+          },
+          "relationship": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source_citation": {
+            "$ref": "citation.schema.json"
+          }
+        }
+      }
+    },
+    "missing_fields": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "warnings": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

@@ -43,6 +43,8 @@ Week 2 artifacts:
 - [W2_ARCHITECTURE.md](W2_ARCHITECTURE.md)
 - [PATIENT_DASHBOARD_MIGRATION.md](PATIENT_DASHBOARD_MIGRATION.md)
 - [W2_SUBMISSION.md](W2_SUBMISSION.md)
+- [agentforge/week2/schemas](agentforge/week2/schemas)
+- [scripts/agentforge-week2-schema-eval.ps1](scripts/agentforge-week2-schema-eval.ps1)
 
 Render deployment:
 

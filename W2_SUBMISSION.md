@@ -10,8 +10,8 @@ Started. Week 2 planning artifacts are in progress.
 - [ ] Deployed application URL.
 - [ ] `W2_ARCHITECTURE.md`.
 - [ ] `PATIENT_DASHBOARD_MIGRATION.md`.
-- [ ] Schemas for `lab_pdf` and `intake_form`.
-- [ ] Validation tests for schemas.
+- [x] Schemas for `lab_pdf` and `intake_form`.
+- [x] Validation tests for schemas.
 - [ ] 50-case eval dataset.
 - [ ] CI or hook evidence that evals block regressions.
 - [ ] Demo video, 3-5 minutes.
@@ -29,3 +29,13 @@ C:\Users\jayce\OneDrive\Gauntlet Ai\Week 2
 Available local assets include sample Labcorp PDFs, a Week 2 requirements PDF, a dashboard migration challenge PDF, and an early submission template.
 
 Do not commit local notes containing API keys or plaintext secrets.
+
+## Validation Commands
+
+Run Week 2 schema validation from the repo root:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\agentforge-week2-schema-eval.ps1
+```
+
+The runner verifies the strict `lab_pdf` and `intake_form` contracts, valid fixtures, and negative fixtures for missing citations and unexpected fields.

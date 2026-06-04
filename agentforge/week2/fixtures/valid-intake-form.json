@@ -1,0 +1,82 @@
+{
+  "doc_type": "intake_form",
+  "schema_version": "week2.intake_form.v1",
+  "patient_id": "1",
+  "source_document": {
+    "source_type": "openemr_document",
+    "source_id": "document:intake-demo-001",
+    "filename": "primary-care-intake.pdf",
+    "page_count": 2
+  },
+  "extraction": {
+    "model": "gpt-4o-mini",
+    "extracted_at": "2026-06-04T15:35:00Z",
+    "confidence": 0.87
+  },
+  "demographics": {
+    "full_name": "Demo Patient",
+    "date_of_birth": "1975-08-12",
+    "sex": "female",
+    "mrn": "MRN-0001",
+    "phone": "555-0100",
+    "source_citation": {
+      "source_type": "openemr_document",
+      "source_id": "document:intake-demo-001",
+      "page_or_section": "page 1",
+      "field_or_chunk_id": "demographics_block",
+      "quote_or_value": "Demo Patient, DOB 1975-08-12"
+    }
+  },
+  "chief_concern": {
+    "text": "Follow-up for diabetes and blood pressure.",
+    "source_citation": {
+      "source_type": "openemr_document",
+      "source_id": "document:intake-demo-001",
+      "page_or_section": "page 1",
+      "field_or_chunk_id": "chief_concern",
+      "quote_or_value": "Follow-up for diabetes and blood pressure"
+    }
+  },
+  "current_medications": [
+    {
+      "name": "Metformin",
+      "dose": "500 mg",
+      "frequency": "twice daily",
+      "source_citation": {
+        "source_type": "openemr_document",
+        "source_id": "document:intake-demo-001",
+        "page_or_section": "page 1",
+        "field_or_chunk_id": "current_medications_1",
+        "quote_or_value": "Metformin 500 mg twice daily"
+      }
+    }
+  ],
+  "allergies": [
+    {
+      "substance": "Penicillin",
+      "reaction": "Rash",
+      "source_citation": {
+        "source_type": "openemr_document",
+        "source_id": "document:intake-demo-001",
+        "page_or_section": "page 2",
+        "field_or_chunk_id": "allergies_1",
+        "quote_or_value": "Penicillin - rash"
+      }
+    }
+  ],
+  "family_history": [
+    {
+      "condition": "Type 2 diabetes",
+      "relationship": "mother",
+      "source_citation": {
+        "source_type": "openemr_document",
+        "source_id": "document:intake-demo-001",
+        "page_or_section": "page 2",
+        "field_or_chunk_id": "family_history_1",
+        "quote_or_value": "Mother - type 2 diabetes"
+      }
+    }
+  ],
+  "missing_fields": [],
+  "warnings": []
+}
